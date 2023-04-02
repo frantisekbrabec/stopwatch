@@ -1,3 +1,5 @@
+// Assumes Lolin D32 ESP32 development board
+
 #define STOPWATCH_START 0
 
 #define BUTTON_PIN 32 // GIOP21 pin connected to button
@@ -7,6 +9,10 @@ int currentState;     // the current reading from the input pin
 #include <esp_now.h>
 #include <WiFi.h>
 #include <Wire.h>
+
+const static double fullBattery = 0.61;
+const static double emptyBattery = 0.36;
+#define ESP32_BATTERY_PIN 35
 
 #if !(STOPWATCH_START)
 #include <Adafruit_GFX.h>
@@ -151,6 +157,14 @@ void loop() {
 
 #if !(STOPWATCH_START)
 void updateDisplay(){
+
+  double adcVoltage;
+  adcVoltage = analogRead(ESP32_BATTERY_PIN) / 4095.0;
+  int percentage = 100 * (adcVoltage - emptyBattery) / (fullBattery - emptyBattery); 
+  Serial.print("Battery: ");
+  Serial.print(percentage);
+  Serial.println("%");
+  
   int elapsed;
   if (running) {
     elapsed = (millis() - startTime);
@@ -163,7 +177,10 @@ void updateDisplay(){
   display.setTextSize(1);
   display.setTextColor(WHITE);
   display.setCursor(0, 0);
-  display.println("Elapsed Time");
+  display.print("Batt: ");
+  display.print(percentage);
+  display.println("%");
+
   display.setCursor(0, 15);
   display.setTextSize(5);
   display.print(elapsed / 1000.0, 1);

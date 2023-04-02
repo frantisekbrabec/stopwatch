@@ -15,6 +15,9 @@ int currentState;     // the current reading from the input pin
 #define SCREEN_WIDTH 128  // OLED display width, in pixels
 #define SCREEN_HEIGHT 64  // OLED display height, in pixels
 
+// display refresh in ms
+#define DISPLAY_REFRESH 100
+
 int lastDisplay = millis();
 
 // Declaration for an SSD1306 display connected to I2C (SDA, SCL pins)
@@ -139,7 +142,7 @@ void loop() {
   lastState = currentState;
 
 #if !(STOPWATCH_START)
-  if (millis() - lastDisplay > 1000) {
+  if (millis() - lastDisplay > DISPLAY_REFRESH) {
     lastDisplay = millis();
     updateDisplay();
   }
@@ -163,12 +166,12 @@ void updateDisplay(){
   display.println("Elapsed Time");
   display.setCursor(0, 15);
   display.setTextSize(5);
-  display.print(elapsed / 1000);
+  display.print(elapsed / 1000.0, 1);
   display.display();
   
   // Display Readings in Serial Monitor
   Serial.print("Clock: ");
-  Serial.println(elapsed / 1000);
+  Serial.println(elapsed / 1000.0, 1);
   Serial.print("Running: ");
   Serial.println(running ? "true" : "false");
 }

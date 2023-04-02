@@ -1,4 +1,5 @@
 // Assumes Lolin D32 ESP32 development board
+// https://RandomNerdTutorials.com/esp-now-two-way-communication-esp32/
 
 #define STOPWATCH_START 0
 
@@ -24,6 +25,9 @@ const static double emptyBattery = 0.36;
 // display refresh in ms
 #define DISPLAY_REFRESH 100
 
+// battery status at STOPWATCH_START
+int startBattery = 0;
+
 int lastDisplay = millis();
 
 // Declaration for an SSD1306 display connected to I2C (SDA, SCL pins)
@@ -40,9 +44,6 @@ uint8_t broadcastAddress[] = {0x24, 0x6F, 0x28, 0x1F, 0x3C, 0x70};
 
 // Variable to store if sending data was successful
 String success;
-
-#define INCOMING_LENGTH 10
-char incomingDummy[INCOMING_LENGTH];
 
 esp_now_peer_info_t peerInfo;
 
@@ -65,7 +66,7 @@ boolean running = false;
 
 // Callback when data is received
 void OnDataRecv(const uint8_t * mac, const uint8_t* incoming, int len) {
-  memcpy(incomingDummy, incoming, INCOMING_LENGTH);
+  memcpy(&startBattery, incoming, sizeof(startBattery));
   Serial.print("Bytes received: ");
   Serial.println(len);
 
@@ -75,7 +76,15 @@ void OnDataRecv(const uint8_t * mac, const uint8_t* incoming, int len) {
 }
 
 #endif
- 
+
+int getBatteryPercentage() {
+  double adcVoltage;
+  adcVoltage = analogRead(ESP32_BATTERY_PIN) / 4095.0;
+  int percentage = 100 * (adcVoltage - emptyBattery) / (fullBattery - emptyBattery); 
+
+  return percentage;
+}
+
 void setup() {
   // Init Serial Monitor
   Serial.begin(115200);
@@ -130,7 +139,8 @@ void loop() {
     // button pressed
 #if STOPWATCH_START
     // Send message via ESP-NOW
-    esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *)incomingDummy, INCOMING_LENGTH);
+    int percentage = getBatteryPercentage();
+    esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *)&percentage, sizeof(percentage));
      
     if (result == ESP_OK) {
       Serial.println("Sent with success");
@@ -158,9 +168,7 @@ void loop() {
 #if !(STOPWATCH_START)
 void updateDisplay(){
 
-  double adcVoltage;
-  adcVoltage = analogRead(ESP32_BATTERY_PIN) / 4095.0;
-  int percentage = 100 * (adcVoltage - emptyBattery) / (fullBattery - emptyBattery); 
+  int percentage = getBatteryPercentage();
   Serial.print("Battery: ");
   Serial.print(percentage);
   Serial.println("%");
@@ -177,7 +185,14 @@ void updateDisplay(){
   display.setTextSize(1);
   display.setTextColor(WHITE);
   display.setCursor(0, 0);
-  display.print("Batt: ");
+
+  // start battery
+  display.print("SB: ");
+  display.print(startBattery);
+  display.print("% ");
+
+  // finish battery
+  display.print("FB: ");
   display.print(percentage);
   display.println("%");
 

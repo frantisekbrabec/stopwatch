@@ -1,9 +1,11 @@
 // Assumes Lolin D32 ESP32 development board
 // https://RandomNerdTutorials.com/esp-now-two-way-communication-esp32/
 
+#include <Arduino.h>
+
 #define STOPWATCH_START 0
 
-#define BUTTON_PIN 32 // GIOP21 pin connected to button
+#define BUTTON_PIN 32 // GPIO pin connected to button
 int lastState = HIGH; // the previous state from the input pin
 int currentState;     // the current reading from the input pin
 
@@ -16,6 +18,7 @@ const static double emptyBattery = 0.36;
 #define ESP32_BATTERY_PIN 35
 
 #if !(STOPWATCH_START)
+#include <U8g2lib.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 
@@ -31,7 +34,8 @@ int startBattery = 0;
 int lastDisplay = millis();
 
 // Declaration for an SSD1306 display connected to I2C (SDA, SCL pins)
-Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
+//Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
+U8G2_SSD1306_128X64_NONAME_F_SW_I2C u8g2(U8G2_R0, /* clock=*/ SCL, /* data=*/ SDA, /* reset=*/ U8X8_PIN_NONE); 
 #endif
 
 
@@ -92,11 +96,8 @@ void setup() {
 
 #if !(STOPWATCH_START)
   // Init OLED display
-  startTime = millis();
-  if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) { 
-    Serial.println(F("SSD1306 allocation failed"));
-    for(;;);
-  }
+  startTime = stopTime = millis();
+  u8g2.begin();
 #endif
 
   // Set device as a Wi-Fi Station
@@ -181,25 +182,24 @@ void updateDisplay(){
   }
 
   // Display Readings on OLED Display
-  display.clearDisplay();
-  display.setTextSize(1);
-  display.setTextColor(WHITE);
-  display.setCursor(0, 0);
+  u8g2.clearBuffer();          // clear the internal memory
+  u8g2.setCursor(0,9);
+  u8g2.setFont(u8g2_font_ncenB08_tr); // choose a suitable font
 
-  // start battery
-  display.print("SB: ");
-  display.print(startBattery);
-  display.print("% ");
+// start battery
+  u8g2.print("SB: ");
+  u8g2.print(startBattery);
+  u8g2.print("% ");
 
   // finish battery
-  display.print("FB: ");
-  display.print(percentage);
-  display.println("%");
+  u8g2.print("FB: ");
+  u8g2.print(percentage);
+  u8g2.println("%");
 
-  display.setCursor(0, 15);
-  display.setTextSize(5);
-  display.print(elapsed / 1000.0, 1);
-  display.display();
+  u8g2.setFont(u8g2_font_fur42_tf);
+  u8g2.setCursor(1,62);
+  u8g2.print(elapsed / 1000.0, 1);
+  u8g2.sendBuffer();          // transfer internal memory to the display
   
   // Display Readings in Serial Monitor
   Serial.print("Clock: ");

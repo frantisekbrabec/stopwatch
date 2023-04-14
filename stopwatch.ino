@@ -92,7 +92,7 @@ void setup() {
 
 #if !(STOPWATCH_START)
   // Init OLED display
-  startTime = millis();
+  startTime = stopTime = millis();
   if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) { 
     Serial.println(F("SSD1306 allocation failed"));
     for(;;);
